@@ -58,56 +58,11 @@ class FullConvModel(torch.nn.Module):
         max_row_len = max([len(row) for row in output])
         padded_output = [row + [pad_elem]*(max_row_len-len(row))
                                               for row in output]
-
         return torch.FloatTensor(padded_output).to(h.device)
 
-class ConvAttentionModel(torch.nn.Module):
-    def __init__(self, transformer, num_class):
-        super().__init__()
-        self.transformer = transformer
-        self.classifier = nn.Linear(256, num_class)
-        self.small_transformer = AutoModel.from_pretrained("prajjwal1/bert-mini")
-        self.attn = nn.MultiheadAttention(embed_dim=256, kdim=768, vdim=768, num_heads=1)
-
-    def forward(self, **kwargs):
-        """for now assumes bsz size is 1"""
-        
-        alt_ids = kwargs.pop('alt_ids')[0]
-        alt_mask = kwargs.pop('alt_mask')[0]
-        
-        queries = self.small_transformer(input_ids=alt_ids, 
-                 attention_mask=alt_mask).last_hidden_state  #[N, L, 268] 
-        queries = queries[:,0].unsqueeze(0)                  #[1, N, 268]
-        
-        H = self.transformer(**kwargs).last_hidden_state     #[1, L, 768] 
-        
-        q = torch.transpose(queries, 0, 1)     #[N, 1, 268]
-        H = torch.transpose(H, 0, 1)           #[L, 1, 268]
-        h = self.attn(q, H, H)                 
-        h = h[0].squeeze(1)                    
-        y = self.classifier(h)                 #[1, L, 43]
-        return y
+    def get_embeds(self, input_ids):
+        """ gets encoder embeddings for given ids"""
+        embeds = self.transformer.embeddings(input_ids)
+        return embeds
     
-class TempSmallBERT(torch.nn.Module):
-    def __init__(self, transformer, num_class):
-        super().__init__()
-        self.transformer = AutoModel.from_pretrained("prajjwal1/bert-mini")
-        self.classifier = nn.Linear(256, num_class)
-        self.pooling = lambda h: h[:,0] #default to first vector
-
-    def forward(self, **kwargs):
-        """for now assumes bsz size is 1"""
-        alt_ids = kwargs.pop('alt_ids')[0]
-        alt_mask = kwargs.pop('alt_mask')[0]
-        
-        h   = self.transformer(input_ids=alt_ids, 
-                 attention_mask=alt_mask).last_hidden_state
-        h_n = self.pooling(h=h)
-        y   = self.classifier(h_n)
-        return y
-    
-class HierModel(torch.nn.Module):
-    def __init__(self, transformer, num_class):
-        self.transformer = transformer
-        self.classifier = nn.Linear(768, num_class)
         

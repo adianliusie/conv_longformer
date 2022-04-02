@@ -21,12 +21,13 @@ class TrainHandler:
         self.dir = DirManager(exp_name, args.temp)
         self.dir.save_args('model_args', args)
 
+        self.set_up_helpers(args)
+        
+    def set_up_helpers(self, args): 
         self.model_args = args
-        self.system = args.system
         self.system_args = args.system_args
         
-        special_tokens = []
-             
+        special_tokens = []     
         if (args.formatting == 'spkr_sep'):
             special_tokens += ['[SPKR_1]', '[SPKR_2]']
         
@@ -63,6 +64,7 @@ class TrainHandler:
 
         return train, dev, test
     
+    
     def set_up_data(self, args:namedtuple):
         train = self.C.prepare_data(path=args.train_path, 
                                     lim=args.lim)
@@ -94,11 +96,11 @@ class TrainHandler:
     
     def train(self, args:namedtuple):
         self.dir.save_args('train_args', args)
-        
+        self.to(self.device)
+
         train, dev, test = self.set_up_data_filtered(args)
         #train, dev, test = self.set_up_data(args)
         optimizer, scheduler = self.set_up_opt(args)
-        self.to(self.device)
         
         best_epoch = (-1, 10000, 0)
         for epoch in range(args.epochs):
@@ -222,20 +224,14 @@ class TrainHandler:
         #add extra model arguments if necessary
         if self.model_args.system_args:
             if 'token_type_embed' in self.model_args.system_args:
-                model_inputs['token_type_ids'] = batch.spkr_ids
+                trans_inputs['token_type_ids'] = batch.spkr_ids
             if 'spkr_embed' in self.model_args.system_args:
-                model_inputs['speaker_ids'] = batch.spkr_ids
+                trans_inputs['speaker_ids'] = batch.spkr_ids
             if 'utt_embed' in self.model_args.system_args:
-                model_inputs['utterance_ids'] = batch.utt_ids     
+                trans_inputs['utterance_ids'] = batch.utt_ids     
 
         system_inputs = {}
-        """
-        if self.system in ['attention', 'small_bert']:
-            system_inputs['alt_ids']  = batch.alt_ids
-            system_inputs['alt_mask'] = batch.alt_mask
-        """
-        if self.model_args.system == 'whole' or \
-                self.model_args.formatting=='cls_start':
+        if not self.model_args.formatting == 'cls_wrap':
             system_inputs['utt_pos'] = batch.utt_pos
             
         y = self.model(trans_inputs, **system_inputs)

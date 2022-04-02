@@ -77,12 +77,13 @@ class DirManager:
         
     def print_perf(self, epoch:int, k:int, print_len:int, mode='train'):
         """returns and logs performance"""
-        loss = float(f'{self.perf[0]/print_len:.3f}')
-        acc  = float(f'{self.perf[1]/self.perf[2]:.3f}')
-        self.update_curve(mode, epoch, loss, acc)
+        loss = f'{self.perf[0]/print_len:.3f}'
+        acc  = f'{self.perf[1]/self.perf[2]:.3f}'
         if mode == 'train':
+            self.update_curve(mode, epoch, float(loss), float(acc))
             self.log(f'{epoch:<3} {k:<5}   loss {loss}   acc {acc}')
         elif mode == 'dev':
+            self.update_curve(mode, epoch, float(loss), float(acc))
             self.log(f'{epoch:<3} DEV   loss {loss}   acc {acc}')
         elif mode == 'test':
             self.log(f'{epoch:<3} TEST  loss {loss}   acc {acc}')
@@ -105,7 +106,8 @@ class DirManager:
             download_hpc_model(exp_name)
         else:
             dir_manager.exp_name = exp_name
-
+        
+        dir_manager.log = print
         return dir_manager
     
     def load_args(self, name:str)->SimpleNamespace:

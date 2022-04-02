@@ -11,6 +11,11 @@ class BertEmbeddingsExtra(BertEmbeddings):
         embed_dim = self.word_embeddings.embedding_dim
         self.speaker_embeddings = nn.Embedding(2, embed_dim)
         self.utterance_embeddings = nn.Embedding(200, embed_dim)
+        
+        #initiaise weights to be small, (break symmetry and starts model at working)
+        self.speaker_embeddings.weight.data.uniform_(-0.001, 0.001)
+        self.utterance_embeddings.weight.data.uniform_(-0.001, 0.001)
+
     # <<< end of method ########################################################################################
 
     def forward(
@@ -48,7 +53,7 @@ class BertEmbeddingsExtra(BertEmbeddings):
         else:
             utterance_embeds = self.utterance_embeddings(utterance_ids)
 
-        embeddings = inputs_embeds + token_type_embeddings + 0.001*speaker_embeds + 0.001*utterance_embeds 
+        embeddings = inputs_embeds + token_type_embeddings + speaker_embeds + utterance_embeds 
         #embeddings = inputs_embeds + token_type_embeddings 
 
         # >>> end of lines #######################################################################################

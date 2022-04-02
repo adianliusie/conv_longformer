@@ -79,9 +79,7 @@ class ConvHandler:
             return 1 + sum(utt_tok_len)
         
         data = self.prepare_data(path, lim)
-        print(len(data))
         data = [conv for conv in data if conv_len(conv)<=max_len]
-        print(len(data))
         return data
     
     def load_label_info(self, path):

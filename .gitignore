@@ -1,6 +1,7 @@
 data
 src/config.py
 trained_models
+scripts
 
 */.ipynb_checkpoints/
 .ipynb_checkpoints/

@@ -38,11 +38,15 @@ def join_namespace(args_1:namedtuple, args_2:namedtuple):
 def download_hpc_model(model_name:str):
     """CMD to copy model from hpc to airstack"""    
     
-    hpc_path = 'al826@login-gpu.hpc.cam.ac.uk:/home/al826/rds/hpc-work'\
-             +f'/2022/DA_classification/trained_models/{model_name}' 
-    cued_path = '/home/alta/Conversational/OET/al826/2022/seq_cls/'\
-              +f'trained_models/hpc/{model_name}'
+    hpc_path = 'al826@login-gpu.hpc.cam.ac.uk:'\
+                + f'/home/al826/rds/hpc-work/2022/'\
+                + f'conv_frameworks/conv_longformer/trained_models/{model_name}' 
+    cued_path = '/home/alta/Conversational/OET/al826/2022/'\
+                +f'conv_frameworks/parallel_exp/trained_models/hpc/{model_name}'
     
     if not os.path.exists(cued_path):
         subprocess.run(['scp', '-r', hpc_path, cued_path])
-        print("Downloading HPC Models!")
+        if os.path.exists(cued_path): print("Successfully downloaded HPC Models!")
+        else:                         print("HPC Download unsuccessful :(")
+    else:
+        print("Model found!")
