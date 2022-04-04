@@ -26,7 +26,7 @@ class ContextWindowModel(torch.nn.Module):
     
     def get_embeds(self, input_ids):
         """ gets encoder embeddings for given ids"""
-        embeds = self.transformer.embeddings(input_ids)
+        embeds = self.transformer.embeddings.word_embeddings(input_ids)
         return embeds
 
 

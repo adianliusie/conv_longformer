@@ -26,6 +26,7 @@ class TrainHandler:
     def set_up_helpers(self, args): 
         self.model_args = args
         self.system_args = args.system_args
+        self.max_len = args.max_len
         
         special_tokens = []     
         if (args.formatting == 'spkr_sep'):
@@ -52,30 +53,15 @@ class TrainHandler:
         
         self.device = args.device
 
-    def set_up_data_filtered(self, args:namedtuple):
-        train = self.C.prep_filtered_data(path=args.train_path, 
-                                          lim=args.lim)
-
-        dev = self.C.prep_filtered_data(path=args.dev_path, lim=args.lim, 
-                                 max_len=4090) if args.dev_path else None
-        
-        test = self.C.prep_filtered_data(path=args.test_path, lim=args.lim,
-                                 max_len=4090) if args.test_path else None
-
-        return train, dev, test
+    def set_up_data_filtered(self, paths, lim:int)->list:
+        data = [self.C.prep_filtered_data(path=path, max_len=self.max_len, 
+                             lim=lim) if path else None for path in paths]
+        return data
     
-    
-    def set_up_data(self, args:namedtuple):
-        train = self.C.prepare_data(path=args.train_path, 
-                                    lim=args.lim)
-
-        dev = self.C.prepare_data(path=args.dev_path, lim=args.lim)\
-                                        if args.dev_path else None
-        
-        test = self.C.prepare_data(path=args.test_path, lim=args.lim)\
-                                        if args.test_path else None
-
-        return train, dev, test
+    def set_up_data(self, paths, lim:int)->list:
+        data = [self.C.prepare_data(path=path, max_len=self.max_len, 
+                       lim=lim) if path else None for path in paths]
+        return data
     
     def set_up_opt(self, args:namedtuple):
         optimizer = make_optimizer(opt_name=args.optim, 
@@ -98,8 +84,10 @@ class TrainHandler:
         self.dir.save_args('train_args', args)
         self.to(self.device)
 
-        train, dev, test = self.set_up_data_filtered(args)
-        #train, dev, test = self.set_up_data(args)
+        paths = [args.train_path, args.dev_path, args.test_path]
+ 
+        train, dev, test = self.set_up_data_filtered(paths, args.lim)
+        #train, dev, test = self.set_up_data(paths, args)
         optimizer, scheduler = self.set_up_opt(args)
         
         best_epoch = (-1, 10000, 0)
@@ -132,7 +120,6 @@ class TrainHandler:
                 self.save_model()
             else:
                 self.model.eval()
-                #print('\n commented out eval \n')
                 self.dir.reset_cls_logger()
                 
                 dev_b = self.batcher(data=dev, bsz=args.bsz, shuffle=True)

@@ -18,7 +18,7 @@ BASE_DIR = f'{config.base_dir}/trained_models'
 class DirManager:
     """ Class which manages logs, models and config files """
 
-    ### Methods for Initialisation of Object ###########################
+    ### Methods for Initialisation of Object ############################
     
     def __init__(self, exp_name:str=None, temp:bool=False):
         if temp:
@@ -54,21 +54,8 @@ class DirManager:
                 f.write('\n')
         return log
     
-    ### Utility Methods ################################################
-    
-    @property
-    def path(self):
-        """returns base experiment path"""
-        return f'{BASE_DIR}/{self.exp_name}'
+    ### Methods for Logging performance ###############################
 
-    def save_args(self, name:str, args:namedtuple):
-        """saves arguments into json format"""
-        config_path = f'{self.path}/{name}.json'
-        with open(config_path, 'x') as jsonFile:
-            json.dump(args.__dict__, jsonFile, indent=4)
-
-    ### Methods for Logging performance Set up Directories #############
-    
     def reset_cls_logger(self):
         self.perf = np.zeros(3)
             
@@ -88,7 +75,7 @@ class DirManager:
         elif mode == 'test':
             self.log(f'{epoch:<3} TEST  loss {loss}   acc {acc}')
         self.reset_cls_logger()
-        return loss, acc 
+        return float(loss), float(acc) 
                               
     def update_curve(self, mode, *args):
         """ logs any passed arguments into a file"""
@@ -96,6 +83,27 @@ class DirManager:
             writer = csv.writer(f)
             writer.writerow(args)
 
+    ### Utility Methods ################################################
+    
+    @property
+    def path(self):
+        """returns base experiment path"""
+        return f'{BASE_DIR}/{self.exp_name}'
+
+    def file_exists(self, file_name:str):
+        return os.path.isfile(f'{self.path}/{file_name}.json') 
+    
+    def save_args(self, name:str, args:namedtuple):
+        """saves arguments into json format"""
+        config_path = f'{self.path}/{name}.json'
+        with open(config_path, 'x') as jsonFile:
+            json.dump(args.__dict__, jsonFile, indent=4)
+
+    def save_dict(self, name:str, dict_data):
+        save_path = f'{self.path}/{name}.json'
+        with open(save_path, 'x') as jsonFile:
+            json.dump(dict_data, jsonFile, indent=4)
+  
     ### Methods for loading existing dir ##############################
     
     @classmethod
@@ -113,7 +121,10 @@ class DirManager:
     def load_args(self, name:str)->SimpleNamespace:
         args = load_json(f'{self.path}/{name}.json')
         return SimpleNamespace(**args)
-
+    
+    def load_dict(self, name:str)->dict:
+        return load_json(f'{self.path}/{name}.json')
+    
     def load_curve(self, mode='train'):
         float_list = lambda x: [float(i) for i in x] 
         with open(f'{self.path}/{mode}.csv') as fp:

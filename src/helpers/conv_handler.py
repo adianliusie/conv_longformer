@@ -52,7 +52,16 @@ class ConvHandler:
     def add_speaker_tokens(self, tokens):
         self.tokenizer.add_tokens(tokens, special_tokens=True)
         
-    def prepare_data(self, path:str, lim:int=None)->List[Conversation]:
+    def prep_filtered_data(self, path, lim=None, max_len=4090, quiet=False):
+        def conv_len(conv):
+            utt_tok_len = [len(utt.ids[:-1]) for utt in conv]
+            return 1 + sum(utt_tok_len)
+        
+        data = self.prepare_data(path, lim, quiet)
+        data = [conv for conv in data if conv_len(conv)<=max_len]
+        return data
+    
+    def prepare_data(self, path:str, lim:int=None, quiet=False)->List:
         """ Given path, will load json and process data for downstream tasks """
         assert path.split('.')[-1] == 'json', "data must be in json format"
 
@@ -61,25 +70,15 @@ class ConvHandler:
         self.load_label_info(path)
 
         data = [Conversation(conv) for conv in raw_data]
-        data = self.process_data(data, lim)
+        data = self.process_data(data, lim, quiet)
         return data
     
-    def process_data(self, data, lim=None):
+    def process_data(self, data, lim=None, quiet=False):
         if lim: data = data[:lim]
         self.clean_text(data)
-        self.tok_convs(data)  
+        self.tok_convs(data, quiet)  
         self.get_speaker_ids(data)
-        self.prepare_options(data)
         if hasattr(self, 'label_dict'): self.get_label_names(data)
-        return data
-       
-    def prep_filtered_data(self, path, lim=None, max_len=4090):
-        def conv_len(conv):
-            utt_tok_len = [len(utt.ids[:-1]) for utt in conv]
-            return 1 + sum(utt_tok_len)
-        
-        data = self.prepare_data(path, lim)
-        data = [conv for conv in data if conv_len(conv)<=max_len]
         return data
     
     def load_label_info(self, path):
@@ -97,9 +96,9 @@ class ConvHandler:
             for utt in conv:
                 utt.text = self.cleaner.clean_text(utt.text)
     
-    def tok_convs(self, data:List[Conversation]):
+    def tok_convs(self, data:List[Conversation], quiet=False):
         """ generates tokenized ids for each utterance in Conversation """
-        for conv in tqdm(data, disable=self.tqdm_disable):
+        for conv in tqdm(data, disable=quiet):
             for utt in conv.utts:
                 utt.ids = self.tokenizer(utt.text).input_ids
             
@@ -121,16 +120,6 @@ class ConvHandler:
                 tok = self.tokenizer(f'[SPKR_{speaker_id}]').input_ids[1]
                 utt.spkr_id = (speaker_id, tok)
     
-    def prepare_options(self, data:List[Conversation]):
-        for conv in data:
-            if hasattr(conv, 'options'):
-                for option in conv.options:
-                    option.ids = self.tokenizer(option.text).input_ids
-
-                    speaker_id = self.speaker_dict[option.speaker]
-                    tok = self.tokenizer(f'[SPKR_{option.speaker}]').input_ids[1]
-                    option.spkr_id = (speaker_id, tok)      
-                    
     def __getitem__(self, x:str):
         """ returns conv with a given conv_id if exists in dataset """
         for conv in self.data:
