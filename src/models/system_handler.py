@@ -4,16 +4,17 @@ from .hugging_utils import get_transformer
 from .embed_patch.extra_embed import extra_embed
 
 from .models import ContextWindowModel, FullConvModel
-from .batchers import ContextWindowBatcher, FullConvBatcher
+from .batchers import ContextWindowBatcher, FullConvBatcher, MaskedFullConvBatcher
 
 class SystemHandler:
     @classmethod
     def batcher(cls, system:str, formatting:str=None, 
-                     max_len:int=None, window_len:tuple=None, C=None):
-        batchers = {'window'   : ContextWindowBatcher, 
-                    'whole'     : FullConvBatcher}
+                     max_len:int=None, batcher_args=None, C=None):
+        batchers = {'window'    : ContextWindowBatcher, 
+                    'whole'     : FullConvBatcher,
+                    'whole_mask': MaskedFullConvBatcher}
 
-        batcher = batchers[system](window_len=window_len, 
+        batcher = batchers[system](batcher_args=batcher_args, 
                                    formatting=formatting, 
                                    max_len=max_len, 
                                    C=C)
@@ -35,9 +36,10 @@ class SystemHandler:
         if system_args:
             trans_model = cls.patch(trans_model, trans_name, system_args)
         
-        models = {'window' : ContextWindowModel, 
-                  'whole'   : FullConvModel}
-        
+        models = {'window'    : ContextWindowModel, 
+                  'whole'     : FullConvModel,
+                  'whole_mask': FullConvModel}
+
         model = models[system](trans_model, num_labels)
         return model
     

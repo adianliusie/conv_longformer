@@ -14,7 +14,6 @@ from ..config import config
 
 BASE_DIR = f'{config.base_dir}/trained_models'
 
-
 class DirManager:
     """ Class which manages logs, models and config files """
 

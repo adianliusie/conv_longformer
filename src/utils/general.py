@@ -4,6 +4,7 @@ import copy
 import json
 import subprocess
 import os
+from ..config import config
 
 def load_json(path:str)->dict:
     with open(path) as jsonFile:
@@ -41,8 +42,7 @@ def download_hpc_model(model_name:str):
     hpc_path = 'al826@login-gpu.hpc.cam.ac.uk:'\
                 + f'/home/al826/rds/hpc-work/2022/'\
                 + f'conv_frameworks/conv_longformer/trained_models/{model_name}' 
-    cued_path = '/home/alta/Conversational/OET/al826/2022/'\
-                +f'conv_frameworks/parallel_exp/trained_models/hpc/{model_name}'
+    cued_path = f'{config.base_dir}/trained_models/hpc/{model_name}'
     
     if not os.path.exists(cued_path):
         subprocess.run(['scp', '-r', hpc_path, cued_path])

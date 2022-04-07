@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 import copy
+from torch.nn.utils.rnn import pad_sequence
+
 
 from transformers import AutoModel 
 
@@ -51,14 +53,11 @@ class FullConvModel(torch.nn.Module):
             utt_pos = utt_pos.unsqueeze(-1)         #[N, 1]
             utt_pos = utt_pos.repeat(1, H.size(-1)) #[N,768]
             conv_vecs = h.gather(0, utt_pos)        #[N,768]
-            output[conv_num] = conv_vecs.tolist()
+            output[conv_num] = conv_vecs
             
         #pad array
-        pad_elem = [0]*H.size(-1)
-        max_row_len = max([len(row) for row in output])
-        padded_output = [row + [pad_elem]*(max_row_len-len(row))
-                                              for row in output]
-        return torch.FloatTensor(padded_output).to(h.device)
+        output = pad_sequence(output, batch_first=True, padding_value=0.0)
+        return output
 
     def get_embeds(self, input_ids):
         """ gets encoder embeddings for given ids"""

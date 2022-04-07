@@ -54,12 +54,12 @@ class BaseBatcher(metaclass=ABCMeta):
     
     
 class ContextWindowBatcher(BaseBatcher):
-    def __init__(self, window_len:tuple, max_len:int=None, 
+    def __init__(self, batcher_args:tuple, max_len:int=None, 
                        formatting:str=None, C=None):
         """initialises object"""
         super().__init__(formatting, max_len, C)
-        assert (len(window_len)==2)
-        self.past, self.fut = window_len
+        assert (len(batcher_args)==2), "wrong batcher arguments, needs 2 ints"
+        self.past, self.fut = batcher_args
     
     def batchify(self, batch:List[list]):
         """each input is input ids and mask for utt, + label"""
@@ -165,17 +165,14 @@ class ContextWindowBatcher(BaseBatcher):
 class FullConvBatcher(BaseBatcher):
     def batchify(self, batch:List[list]):
         """each input is input ids and mask for utt, + label"""
-        ids, spkr_ids, utt_ids, utt_pos_seq, convs = zip(*batch)  
+        ids, spkr_ids, utt_ids, utt_pos_seq, labels = zip(*batch)  
         ids, mask = self._get_padded_ids(ids)
         spkr_ids = self._pad_seq(spkr_ids)
         utt_ids = self._pad_seq(utt_ids)
         
         utt_pos_seq = [torch.LongTensor(utt).to(self.device) for utt in utt_pos_seq] #[bsz, 1]
-
-        labels = [[utt.label for utt in conv] for conv in convs]
         labels = self._pad_seq(labels, pad_val=-100)
-        #^keep in mind labels are wrong for seq2seq training
-        
+                
         return SimpleNamespace(ids=ids, mask=mask, labels=labels, 
                    spkr_ids=spkr_ids, utt_ids=utt_ids, utt_pos=utt_pos_seq)
     
@@ -195,10 +192,12 @@ class FullConvBatcher(BaseBatcher):
             utt_ids = [[k]*len(i) for k, i in enumerate(ids)]
             utt_ids = flatten(utt_ids)
             ids = flatten(ids)
-                            
+            
+            labels = [utt.label for utt in conv]
+                      
             #add to data set    
             if self.max_len==None or len(utt_ids)<self.max_len:
-                output.append([ids, spkr_ids, utt_ids, utt_pos_seq, conv])
+                output.append([ids, spkr_ids, utt_ids, utt_pos_seq, labels])
                 
         return output
     
@@ -227,4 +226,31 @@ class FullConvBatcher(BaseBatcher):
         else:
             raise ValueError('invalid sequence formatting')
         return utt_ids, utt_pos_seq
+
+class MaskedFullConvBatcher(FullConvBatcher):
+    def __init__(self, batcher_args:int, max_len:int=None, 
+                       formatting:str=None, C=None):
+        """initialises object"""
+        super().__init__(formatting, max_len, C)
+        assert (len(batcher_args)==1), "wrong batcher arguments, needs int"
+        self.utt_bsz = batcher_args[0]
+      
+    def _prep_convs(self, data:List['Conversations']):
+        """ sequence classification input data preparation"""
+        
+        ### First get all data of conversations
+        conversations = super()._prep_convs(data)
+        
+        ### Then split conversations into batches of N labels
+        output = []
+        for ids, spkr_ids, utt_ids, utt_pos_seq, labels in conversations:
+            indices = [i for i in range(len(labels))]
+            random.shuffle(indices)
+            
+            index_batch = [indices[i:i+self.utt_bsz] for i in 
+                               range(0,len(labels), self.utt_bsz)]
+            for inds in index_batch:
+                masked_labels = [i if k in inds else -100 for k, i in enumerate(labels)]
+                output.append([ids, spkr_ids, utt_ids, utt_pos_seq, masked_labels])
+        return output 
 

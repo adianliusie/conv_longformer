@@ -12,7 +12,7 @@ group.add_argument('--temp', action='store_true',  help='to save in temp dir', )
 model_parser.add_argument('--transformer', default='longformer', type=str,  help='select transformer (e.g. bert, roberta etc.)')
 model_parser.add_argument('--system',      default='window',     type=str,  help='select system (e.g. context, whole.)')
 model_parser.add_argument('--system_args', default=None,         type=str,  help='select system arguments',   nargs='+')
-model_parser.add_argument('--window_len',  default=None,         type=int,  help='context window',   nargs=2)
+model_parser.add_argument('--batcher_args',  default=None,       type=int,  help='arguments for batcher',   nargs='+')
 
 model_parser.add_argument('--num_labels',  default=43,       type=int,  help='')
 model_parser.add_argument('--device',      default='cuda',   type=str,  help='device to use (cuda, cpu)')

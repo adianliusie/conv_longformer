@@ -40,7 +40,7 @@ class TrainHandler:
                            system=args.system,
                            formatting=args.formatting,
                            max_len=args.max_len, 
-                           window_len=args.window_len, 
+                           batcher_args=args.batcher_args, 
                            C=self.C)
         
         self.model = SystemHandler.model(
@@ -100,7 +100,7 @@ class TrainHandler:
                 #forward and loss calculation
                 output = self.model_output(batch)
                 loss = output.loss
-
+                
                 #updating model parameters
                 optimizer.zero_grad()
                 loss.backward()

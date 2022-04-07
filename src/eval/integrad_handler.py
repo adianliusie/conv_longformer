@@ -5,7 +5,7 @@ from collections import namedtuple
 from types import SimpleNamespace
 import matplotlib.pyplot as plt
 from typing import Tuple
-from tqdm.notebook import tqdm
+from tqdm import tqdm
 from abc import ABCMeta
 import itertools
 
@@ -90,9 +90,10 @@ class IntegradHandler(BaseLoader):
             words, word_scores, prob, pred_class, true_class \
                 = self.saliency(args, N, conv_num, utt_num, quiet=True)
             utt_scores = self.utt_scores(words, word_scores)
-            utt = {'words':words, 'word_scores':word_scores, 'prob':prob,
-                   'utt_scores':utt_scores[1:], 'cls_score':utt_scores[0],
-                   'pred_class':pred_class, 'true_class':true_class}
+            utt = {'words':words, 'word_scores':word_scores, 
+                   'prob':prob, 'utt_scores':utt_scores,
+                   'pred_class':pred_class, 'true_class':true_class, 
+                   'conv_num':conv_num, 'utt_num':utt_num}
             output.append(utt)
         return output
                 
